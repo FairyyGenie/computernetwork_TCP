@@ -160,15 +160,17 @@ int main (int argc, char **argv)
 
             do
             {
+                //if we time out, we should break out of the loop. 
                 if(recvfrom(sockfd, buffer, MSS_SIZE, 0,
                             (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0)
                 {
                     error("recvfrom");
                 }
-
+                
                 recvpkt = (tcp_packet *)buffer;
                 printf("%d \n", get_data_size(recvpkt));
                 assert(get_data_size(recvpkt) <= DATA_SIZE);
+                //here, we need to check for duplicate ACK--create an array, and arr[hdr.ackno]++, and we check if it's > 1. If so, we break and retransmit everything from hdr.ackno forward.  
             }while(recvpkt->hdr.ackno < next_seqno);    //ignore duplicate ACKs
             stop_timer();
             /*resend pack if don't recv ACK */
