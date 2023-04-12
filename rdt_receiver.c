@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     };
     struct outorder outoforder[1000];
     // keep track of how many out of order packet there is
-    int howmany;
+    int howmany=0;
 
     /*
      * bind: associate the parent socket with a port
@@ -124,9 +124,10 @@ int main(int argc, char **argv)
         we need to buffer the packet
         the buffer needs to be a priority queue and
         so when we write it back to the file it is in order*/
+        if (howmany!=0){
         for (int i = 0; i < howmany; i++)
         {
-            if ((&outoforder[i])->seqnum!=NULL && (&outoforder[i])->seqnum == recvpkt->hdr.seqno + 1)
+            if ((&outoforder[i])!=NULL && (&outoforder[i])->seqnum == recvpkt->hdr.seqno + recvpkt->hdr.data_size)
             {
                  // write into file only when receving correct sequence packet
                     fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
@@ -176,6 +177,38 @@ int main(int argc, char **argv)
                     /*send the packet of ACK the original ACk sequence number */
                 }
             }
+        }
+        }
+        else{
+            if (recvpkt->hdr.seqno != sndpkt->hdr.ackno)
+                {
+                    printf("out of order packet number %d into buffer", recvpkt->hdr.seqno);
+                    outoforder[howmany].seqnum = recvpkt->hdr.seqno;
+                    outoforder[howmany].out = recvpkt;
+                    howmany++;
+                    // send the old acknowledgement info
+                    if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
+                               (struct sockaddr *)&clientaddr, clientlen) < 0)
+                    {
+                        error("ERROR in sendto");
+                    }
+                }
+                else
+                {
+                    // write into file only when receving correct sequence packet
+                    fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
+                    fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
+
+                    sndpkt = make_packet(0);
+                    sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+                    sndpkt->hdr.ctr_flags = ACK;
+                    if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
+                               (struct sockaddr *)&clientaddr, clientlen) < 0)
+                    {
+                        error("ERROR in sendto");
+                    }
+                    /*send the packet of ACK the original ACk sequence number */
+                }
         }
     }
 
