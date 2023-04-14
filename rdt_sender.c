@@ -130,6 +130,7 @@ int main (int argc, char **argv)
     init_timer(RETRY, resend_packets);
     next_seqno = 0;
     int windowCreated = 0;
+    //bytes[i] is the last byte that packet NUMBER i should contain. 
     int bytes[2048];
     bzero(bytes, sizeof(bytes));
  	int length;
@@ -158,10 +159,10 @@ int main (int argc, char **argv)
                 recvpkt = (tcp_packet *)buffer;
                 printf("%d \n", get_data_size(recvpkt));
     	}
-    	while(recvpkt->hdr.ackno < lastByteinWindow);
+    	while(recvpkt->hdr.ackno < lastByteinWindow && !timedOut);
     	if(!timedOut){
     		packetBase++;
-    		firstByteInWindow = bytes[packetBase];
+    		firstByteInWindow = bytes[packetBase-1]+1;
     		length = fread(buffer, 1, DATA_SIZE, fp);
 			bytes[packetBase+window_size] = bytes[packetBase+window_size-1] + length;
 			sndpkt = make_packet(length);
