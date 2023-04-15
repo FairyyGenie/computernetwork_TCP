@@ -39,7 +39,7 @@ void resend_packets(int sig)
     {
         //Resend all packets range between 
         //sendBase and nextSeqNum
-        fseek(fp, 0, firstByteInWindow);
+        fseek(fp, SEEK_SET, firstByteInWindow);
         length = fread(buffer, 1, DATA_SIZE, fp);
  		sndpkt = make_packet(length);
         VLOG(INFO, "Timeout happened");
@@ -142,6 +142,13 @@ int main (int argc, char **argv)
     	if(!windowCreated){
     		for(int i = 0; i < 10; i++){
     			length = fread(buffer, 1, DATA_SIZE, fp);
+                if (length <= 0){
+                    VLOG(INFO, "End Of File has been reached");
+                    sndpkt = make_packet(0);
+                    sendto(sockfd, sndpkt, TCP_HDR_SIZE,  0,
+                            (const struct sockaddr *)&serveraddr, serverlen);
+                    break;
+                }
  				bytes[i+1] = bytes[i] + length;
  				sndpkt = make_packet(length);
  				if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, ( const struct sockaddr *)&serveraddr, serverlen) < 0){
@@ -151,6 +158,7 @@ int main (int argc, char **argv)
     	windowCreated = 1;
     	}
     	lastByteinWindow = bytes[packetBase+window_size];
+        firstByteInWindow = bytes[packetBase]+1;
     	start_timer();
     	do{
     		if(recvfrom(sockfd, buffer, MSS_SIZE, 0, (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0){
@@ -162,8 +170,14 @@ int main (int argc, char **argv)
     	while(recvpkt->hdr.ackno < lastByteinWindow && !timedOut);
     	if(!timedOut){
     		packetBase++;
-    		firstByteInWindow = bytes[packetBase-1]+1;
     		length = fread(buffer, 1, DATA_SIZE, fp);
+            if (length <= 0){
+                VLOG(INFO, "End Of File has been reached");
+                sndpkt = make_packet(0);
+                sendto(sockfd, sndpkt, TCP_HDR_SIZE,  0,
+                        (const struct sockaddr *)&serveraddr, serverlen);
+                break;
+            }
 			bytes[packetBase+window_size] = bytes[packetBase+window_size-1] + length;
 			sndpkt = make_packet(length);
 			if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, ( const struct sockaddr *)&serveraddr, serverlen) < 0){
@@ -173,7 +187,6 @@ int main (int argc, char **argv)
     	}
     }
     return 0;
-
 }
 
 
