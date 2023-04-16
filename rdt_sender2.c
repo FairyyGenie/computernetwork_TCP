@@ -178,7 +178,7 @@ int main (int argc, char **argv)
         }
         printf("packet base: %d\n", packetBase);
     	lastByteinWindow = bytes[packetBase+window_size];
-        firstByteInWindow = bytes[packetBase]+1;
+        firstByteInWindow = bytes[packetBase];
         do {
         //ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
         //struct sockaddr *src_addr, socklen_t *addrlen);
