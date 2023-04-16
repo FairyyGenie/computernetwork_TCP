@@ -176,6 +176,7 @@ int main (int argc, char **argv)
         if(windowCreated){
             printf("%s\n", "sliding the window");
         }
+        printf("%d\n", packetBase);
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
         do {
@@ -192,7 +193,6 @@ int main (int argc, char **argv)
             print("%s\n, bytes received:", bytesReceived);
             recvpkt = (tcp_packet *)buffer;
             acks[recvpkt->hdr.ackno]++;
-            printf("%d \n", get_data_size(recvpkt));
         }while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3 && !timedOut);    //ignore duplicate ACKs
         stop_timer();
         /*resend pack if don't recv ACK */
