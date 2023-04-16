@@ -55,6 +55,7 @@ void resend_packets(int sig)
         //open the file if it's not already open, go back to the sendbase, retransmit all bytes from there. 
     }
     timedOut = 1;
+    stop_timer();
 }
 
 
