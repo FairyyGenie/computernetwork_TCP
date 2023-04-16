@@ -110,6 +110,7 @@ int main(int argc, char **argv)
             error("ERROR in recvfrom");
         }
         recvpkt = (tcp_packet *)buffer;
+        printf("%d/n", recvpkt->hdr.seqno);
         assert(get_data_size(recvpkt) <= DATA_SIZE);
         if (recvpkt->hdr.data_size == 0)
         {
@@ -180,7 +181,6 @@ int main(int argc, char **argv)
                         // write into file only when receving correct sequence packet
                         fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
                         fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-
                         
                         sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
                         sndpkt->hdr.ctr_flags = ACK;

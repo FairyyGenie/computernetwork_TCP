@@ -174,7 +174,7 @@ int main (int argc, char **argv)
                     error("recvfrom");
                 }
                 recvpkt = (tcp_packet *)buffer;
-                printf("%d \n", get_data_size(recvpkt));
+                printf("%d\n", recvpkt->hdr.ackno);
     	}
     	while(recvpkt->hdr.ackno < lastByteinWindow);
     	if(!timedOut){
