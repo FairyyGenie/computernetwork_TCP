@@ -146,10 +146,12 @@ int main(int argc, char **argv)
                     fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
                     fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
                     printf(" %s \n", "missing packet received correct sequence no buffer");
+                    // change sndpkt ackno and send packet
                     sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
                     sndpkt->hdr.ctr_flags = ACK;
                     oldsndpkt->hdr.ackno = sndpkt->hdr.ackno;
                     oldsndpkt->hdr.ctr_flags = sndpkt->hdr.ctr_flags;
+                    //debug to see which packets are sending and receiving 
                     printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
                     printf(" send ackno %d \n", sndpkt->hdr.ackno);
                     printf("writing into file %d ", recvpkt->hdr.seqno);
@@ -159,8 +161,7 @@ int main(int argc, char **argv)
                         printf("out of order packet number %d into file HERES\n", recvpkt->hdr.seqno);
                         fseek(fp, (&outoforder[i])->seqnum, SEEK_SET);
                         fwrite((&outoforder[i])->out->data, 1, (&outoforder[i])->out->hdr.data_size, fp);
-                        // cumulative ACK
-
+                        //cumulative ack
                         sndpkt->hdr.ackno = (&outoforder[i])->out->hdr.seqno + (&outoforder[i])->out->hdr.data_size;
                         sndpkt->hdr.ctr_flags = ACK;
                         oldsndpkt->hdr.ackno = sndpkt->hdr.ackno;
@@ -185,7 +186,7 @@ int main(int argc, char **argv)
                 else
                 {
                     // buffer the packet
-                    if (recvpkt->hdr.seqno != sndpkt->hdr.ackno)
+                    if ((recvpkt->hdr.seqno != sndpkt->hdr.ackno) && (recvpkt->hdr.seqno > sndpkt->hdr.ackno))
                     {
                         if (recvpkt->hdr.seqno == outoforder[howmany - 1].seqnum)
                         {
@@ -210,7 +211,8 @@ int main(int argc, char **argv)
         }
         else
         {
-            if (recvpkt->hdr.seqno != sndpkt->hdr.ackno)
+            //saving the out of order packets into buffer
+            if ((recvpkt->hdr.seqno != sndpkt->hdr.ackno) && (recvpkt->hdr.seqno > sndpkt->hdr.ackno))
             {
                 printf("out of order packet number %d into buffer\n", recvpkt->hdr.seqno);
                 outoforder[howmany].seqnum = recvpkt->hdr.seqno;
