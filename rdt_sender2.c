@@ -41,12 +41,14 @@ void start_timer()
 {
     sigprocmask(SIG_UNBLOCK, &sigmask, NULL);
     setitimer(ITIMER_REAL, &timer, NULL);
+    timedOut = 0;
 }
 
 
 void stop_timer()
 {
     sigprocmask(SIG_BLOCK, &sigmask, NULL);
+    timedOut = 0;
 }
 
 void resend_packets(int sig)
@@ -176,21 +178,8 @@ int main (int argc, char **argv)
         }
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
-        do {
 
-        VLOG(DEBUG, "Sending packet %d to %s", 
-                send_base, inet_ntoa(serveraddr.sin_addr));
-        /*
-            * If the sendto is called for the first time, the system will
-            * will assign a random port number so that server can send its
-            * response to the src port.
-            */
-        if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, 
-                    ( const struct sockaddr *)&serveraddr, serverlen) < 0)
-        {
-            error("sendto");
-        }
-        start_timer();
+        do {
         //ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
         //struct sockaddr *src_addr, socklen_t *addrlen);
         do
@@ -203,10 +192,11 @@ int main (int argc, char **argv)
             recvpkt = (tcp_packet *)buffer;
             acks[recvpkt->hdr.ackno]++;
             printf("%d \n", get_data_size(recvpkt));
-        }while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3);    //ignore duplicate ACKs
+        }while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3 && !timedOut);    //ignore duplicate ACKs
         stop_timer();
         /*resend pack if don't recv ACK */
     } while(recvpkt->hdr.ackno > bytes[packetBase]+1); 
+
     if(acks[recvpkt->hdr.ackno] >= 3 || timedOut){
         if(acks[recvpkt->hdr.ackno] >= 3){
             printf("%s\n", "DUPLICATE ACK");
