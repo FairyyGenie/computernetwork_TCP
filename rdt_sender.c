@@ -174,7 +174,7 @@ int main (int argc, char **argv)
                 recvpkt = (tcp_packet *)buffer;
                 printf("%d \n", get_data_size(recvpkt));
     	}
-    	while(recvpkt->hdr.ackno < lastByteinWindow && !timedOut);
+    	while(recvpkt->hdr.ackno < lastByteinWindow);
     	if(!timedOut){
     		packetBase++;
     		length = fread(buffer, 1, DATA_SIZE, fp);
