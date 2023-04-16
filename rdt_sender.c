@@ -34,7 +34,7 @@ int length;
 char buffer[DATA_SIZE];
 FILE *fp;
 int acks[200000];
-bzero(acks, sizeof(acks));
+memset(acks, NULL, sizeof(acks));
 
 
 
