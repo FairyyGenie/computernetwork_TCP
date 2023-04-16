@@ -21,6 +21,7 @@ int next_seqno=0;
 int send_base=0;
 int window_size = 10;
 int timedOut = 0;
+int eof = 0;
 
 int sockfd, serverlen;
 struct sockaddr_in serveraddr;
@@ -139,7 +140,6 @@ int main (int argc, char **argv)
  	int length;
  	int lastByteinWindow;
  	int packetBase = 0;
-    int eof = 0;
     while (1)
     {
     	timedOut = 0;
