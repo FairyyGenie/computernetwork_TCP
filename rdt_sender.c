@@ -189,7 +189,9 @@ int main (int argc, char **argv)
     	}
     	while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3 && !timedOut);
         if(acks[recvpkt->hdr.ackno] >= 3 || timedOut){
-            printf("%s\n", "DUPLICATE ACK");
+            if(acks[recvpkt->hdr.ackno] >= 3){
+                printf("%s\n", "DUPLICATE ACK");
+            }
             fseek(fp, SEEK_SET, recvpkt->hdr.ackno);
             length = fread(buffer, 1, DATA_SIZE, fp);
             if (length <= 0){
