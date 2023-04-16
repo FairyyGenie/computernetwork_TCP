@@ -166,6 +166,9 @@ int main (int argc, char **argv)
     		}
     	windowCreated = 1;
     	}
+        if(windowCreated){
+            printf("%s\n", "sliding the window");
+        }
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
     	do{
@@ -197,9 +200,6 @@ int main (int argc, char **argv)
             }
             free(sndpkt);	
     	}
-        if(eof == 1){
-            break;
-        }
     }
     return 0;
 }
