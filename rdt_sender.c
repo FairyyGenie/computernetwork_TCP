@@ -34,9 +34,18 @@ int length;
 char buffer[DATA_SIZE];
 FILE *fp;
 int acks[200000];
-memset(acks, NULL,sizeof(acks));
+
+void start_timer()
+{
+    sigprocmask(SIG_UNBLOCK, &sigmask, NULL);
+    setitimer(ITIMER_REAL, &timer, NULL);
+}
 
 
+void stop_timer()
+{
+    sigprocmask(SIG_BLOCK, &sigmask, NULL);
+}
 
 void resend_packets(int sig)
 {
@@ -63,18 +72,6 @@ void resend_packets(int sig)
 }
 
 
-void start_timer()
-{
-    sigprocmask(SIG_UNBLOCK, &sigmask, NULL);
-    setitimer(ITIMER_REAL, &timer, NULL);
-}
-
-
-void stop_timer()
-{
-    sigprocmask(SIG_BLOCK, &sigmask, NULL);
-}
-
 
 /*
  * init_timer: Initialize timer
@@ -96,10 +93,13 @@ void init_timer(int delay, void (*sig_handler)(int))
 
 int main (int argc, char **argv)
 {
-    int portno, len;
+    int portno;
     int next_seqno;
     char *hostname;
 
+    for( int i=0;i<200000;i++){
+        acks[i]=0;
+    }
     /* check command line arguments */
     if (argc != 4) {
         fprintf(stderr,"usage: %s <hostname> <port> <FILE>\n", argv[0]);
