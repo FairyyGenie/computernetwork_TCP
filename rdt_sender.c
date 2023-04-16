@@ -168,7 +168,6 @@ int main (int argc, char **argv)
     	}
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
-    	start_timer();
     	do{
     		if(recvfrom(sockfd, buffer, MSS_SIZE, 0, (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0){
                     error("recvfrom");
@@ -195,7 +194,6 @@ int main (int argc, char **argv)
 			if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, ( const struct sockaddr *)&serveraddr, serverlen) < 0){
             	error("sendto");
             }
-            stop_timer();
             free(sndpkt);	
     	}
         if(eof == 1){
