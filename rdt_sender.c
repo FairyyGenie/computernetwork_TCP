@@ -178,7 +178,7 @@ int main (int argc, char **argv)
                 recvpkt = (tcp_packet *)buffer;
                 printf("ack no: %d\n", recvpkt->hdr.ackno);
     	}
-    	while(recvpkt->hdr.ackno < bytes[packetBase]);
+    	while(recvpkt->hdr.ackno <= bytes[packetBase]);
         printf("%s\n", "past inner while loop");
     	if(!timedOut){
     		packetBase++;
