@@ -178,17 +178,18 @@ int main (int argc, char **argv)
         }
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
-
         do {
         //ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
         //struct sockaddr *src_addr, socklen_t *addrlen);
         do
         {
-            if(recvfrom(sockfd, buffer, MSS_SIZE, 0,
-                        (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0)
+            bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0,
+                        (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0 
+            if(bytesReceived < 0)
             {
                 error("recvfrom");
             }
+            print("%s\n, bytes received:", bytesReceived);
             recvpkt = (tcp_packet *)buffer;
             acks[recvpkt->hdr.ackno]++;
             printf("%d \n", get_data_size(recvpkt));
