@@ -195,6 +195,7 @@ int main (int argc, char **argv)
             acks[recvpkt->hdr.ackno]++;
         }while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3 && !timedOut);    //ignore duplicate ACKs
         stop_timer();
+        printf("%s\n", "outside of inner loop but inside of outer loop");
         /*resend pack if don't recv ACK */
     } while(recvpkt->hdr.ackno > bytes[packetBase]+1); 
 
