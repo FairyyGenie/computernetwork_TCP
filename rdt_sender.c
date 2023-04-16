@@ -36,6 +36,18 @@ FILE *fp;
 int acks[200000];
 bzero(acks, sizeof(acks));
 
+void start_timer()
+{
+    sigprocmask(SIG_UNBLOCK, &sigmask, NULL);
+    setitimer(ITIMER_REAL, &timer, NULL);
+}
+
+
+void stop_timer()
+{
+    sigprocmask(SIG_BLOCK, &sigmask, NULL);
+}
+
 
 
 void resend_packets(int sig)
@@ -61,20 +73,6 @@ void resend_packets(int sig)
     timedOut = 1;
     stop_timer();
 }
-
-
-void start_timer()
-{
-    sigprocmask(SIG_UNBLOCK, &sigmask, NULL);
-    setitimer(ITIMER_REAL, &timer, NULL);
-}
-
-
-void stop_timer()
-{
-    sigprocmask(SIG_BLOCK, &sigmask, NULL);
-}
-
 
 /*
  * init_timer: Initialize timer
