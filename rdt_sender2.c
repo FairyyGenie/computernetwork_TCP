@@ -179,7 +179,6 @@ int main (int argc, char **argv)
         printf("packet base: %d\n", packetBase);
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase];
-        do {
         //ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
         //struct sockaddr *src_addr, socklen_t *addrlen);
         do
@@ -197,8 +196,6 @@ int main (int argc, char **argv)
         }while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3 && !timedOut);    //ignore duplicate ACKs
         stop_timer();
         printf("%s\n", "outside of inner loop but inside of outer loop");
-        /*resend pack if don't recv ACK */
-    } while(recvpkt->hdr.ackno > bytes[packetBase]+1); 
 
     if(acks[recvpkt->hdr.ackno] >= 3 || timedOut){
         if(acks[recvpkt->hdr.ackno] >= 3){
