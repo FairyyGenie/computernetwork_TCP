@@ -179,6 +179,7 @@ int main (int argc, char **argv)
                 printf("%d\n", recvpkt->hdr.ackno);
     	}
     	while(recvpkt->hdr.ackno < bytes[packetBase]);
+        printf("%s\n", "past inner while loop");
     	if(!timedOut){
     		packetBase++;
     		length = fread(buffer, 1, DATA_SIZE, fp);
