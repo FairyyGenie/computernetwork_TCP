@@ -185,6 +185,7 @@ int main (int argc, char **argv)
     	}
     	while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3);
         if(acks[recvpkt->hdr.ackno] >= 3){
+            printf("%s\n", "DUPLICATE ACK");
             fseek(fp, SEEK_SET, recvpkt->hdr.ackno);
             length = fread(buffer, 1, DATA_SIZE, fp);
             if (length <= 0){
@@ -203,7 +204,6 @@ int main (int argc, char **argv)
             }
             continue;
         }
-        printf("%s\n", "past inner while loop");
         packetBase++;
         length = fread(buffer, 1, DATA_SIZE, fp);
         if (length <= 0){
