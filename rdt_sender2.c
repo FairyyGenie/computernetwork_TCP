@@ -224,9 +224,9 @@ int main (int argc, char **argv)
         }
         continue;
     }
-    newPacketBase = recvpkt.ackno/DATA_SIZE;
-    fseek(fp, SEEK_SET, recvpkt.ackno); 
-    for(int i = packetBase+window_size; i < packetBase+recvpkt.ackno/DATA_SIZE; i++){
+    newPacketBase = recvpkt->hdr.ackno/DATA_SIZE;
+    fseek(fp, SEEK_SET, recvpkt->hdr.ackno); 
+    for(int i = newPacketBase+recvpkt->hdr.ackno/DATA_SIZE; i < newPacketBase+window_size; i++){
         length = fread(buffer, 1, DATA_SIZE, fp);
         if (length <= 0){
             VLOG(INFO, "End Of File has been reached");
@@ -247,6 +247,7 @@ int main (int argc, char **argv)
         stop_timer();
         free(sndpkt);	
     }
+    packetBase=newPacketBase;
     
     }
     return 0;
