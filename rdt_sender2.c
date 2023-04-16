@@ -185,13 +185,14 @@ int main (int argc, char **argv)
         do
         {
             bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0,
-                        (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0 
+                        (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen); 
             if(bytesReceived < 0)
             {
                 error("recvfrom");
             }
-            print("%s\n, bytes received:", bytesReceived);
+            printf("%d\n, bytes received:", bytesReceived);
             recvpkt = (tcp_packet *)buffer;
+            printf("recvpkt ack no: %d\n", recvpkt->hdr.ackno);
             acks[recvpkt->hdr.ackno]++;
         }while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3 && !timedOut);    //ignore duplicate ACKs
         stop_timer();
