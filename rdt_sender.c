@@ -37,6 +37,9 @@ void resend_packets(int sig)
 {
     if (sig == SIGALRM)
     {
+        if(eof == 1){
+            exit(0);
+        }
         //Resend all packets range between 
         //sendBase and nextSeqNum
         fseek(fp, SEEK_SET, firstByteInWindow);
@@ -136,6 +139,7 @@ int main (int argc, char **argv)
  	int length;
  	int lastByteinWindow;
  	int packetBase = 0;
+    int eof = 0;
     while (1)
     {
     	timedOut = 0;
@@ -147,6 +151,7 @@ int main (int argc, char **argv)
                     sndpkt = make_packet(0);
                     sendto(sockfd, sndpkt, TCP_HDR_SIZE,  0,
                             (const struct sockaddr *)&serveraddr, serverlen);
+                    eof = 1;
                     break;
                 }
  				bytes[i+1] = bytes[i] + length;
@@ -177,6 +182,7 @@ int main (int argc, char **argv)
                 sndpkt = make_packet(0);
                 sendto(sockfd, sndpkt, TCP_HDR_SIZE,  0,
                         (const struct sockaddr *)&serveraddr, serverlen);
+                eof = 1;
                 break;
             }
 			bytes[packetBase+window_size] = bytes[packetBase+window_size-1] + length;
@@ -185,8 +191,12 @@ int main (int argc, char **argv)
 			if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, ( const struct sockaddr *)&serveraddr, serverlen) < 0){
             	error("sendto");
             }
-            stop_timer();	
+            stop_timer();
+            free(sndpkt);	
     	}
+        if(eof == 1){
+            break;
+        }
     }
     return 0;
 }
