@@ -176,6 +176,7 @@ int main (int argc, char **argv)
         }
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
+        start_timer();
     	do{
             bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0, (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen);  
     		if(bytesReceived < 0){
@@ -186,8 +187,8 @@ int main (int argc, char **argv)
             printf("ack no: %d\n", recvpkt->hdr.ackno);
             acks[recvpkt->hdr.ackno]=acks[recvpkt->hdr.ackno]+1;
     	}
-    	while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3);
-        if(acks[recvpkt->hdr.ackno] >= 3){
+    	while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3 && !timedOut);
+        if(acks[recvpkt->hdr.ackno] >= 3 || timedOut){
             printf("%s\n", "DUPLICATE ACK");
             fseek(fp, SEEK_SET, recvpkt->hdr.ackno);
             length = fread(buffer, 1, DATA_SIZE, fp);
@@ -205,6 +206,9 @@ int main (int argc, char **argv)
             printf("sent packet's data: %s\n", sndpkt->data);
             if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, ( const struct sockaddr *)&serveraddr, serverlen) < 0){
                 error("sendto");
+            }
+            if(timedOut){
+                stop_timer();
             }
             continue;
         }
@@ -226,6 +230,7 @@ int main (int argc, char **argv)
         if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, ( const struct sockaddr *)&serveraddr, serverlen) < 0){
             error("sendto");
         }
+        stop_timer();
     free(sndpkt);	
     }
     return 0;
