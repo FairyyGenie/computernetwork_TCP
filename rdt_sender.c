@@ -35,6 +35,7 @@ int length;
 char buffer[DATA_SIZE];
 FILE *fp;
 int acks[200000];
+int bytesReceived;
 
 void start_timer()
 {
@@ -176,12 +177,14 @@ int main (int argc, char **argv)
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
     	do{
-    		if(recvfrom(sockfd, buffer, MSS_SIZE, 0, (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) < 0){
+            bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0, (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) <  
+    		if(bytesReceived < 0){
                     error("recvfrom");
-                }
-                recvpkt = (tcp_packet *)buffer;
-                printf("ack no: %d\n", recvpkt->hdr.ackno);
-                acks[recvpkt->hdr.ackno]=acks[recvpkt->hdr.ackno]+1;
+            }
+            printf("%d\n", bytesReceived);
+            recvpkt = (tcp_packet *)buffer;
+            printf("ack no: %d\n", recvpkt->hdr.ackno);
+            acks[recvpkt->hdr.ackno]=acks[recvpkt->hdr.ackno]+1;
     	}
     	while(recvpkt->hdr.ackno <= bytes[packetBase] && acks[recvpkt->hdr.ackno] < 3);
         if(acks[recvpkt->hdr.ackno] >= 3){
