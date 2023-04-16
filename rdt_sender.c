@@ -177,7 +177,7 @@ int main (int argc, char **argv)
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
     	do{
-            bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0, (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen) <  
+            bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0, (struct sockaddr *) &serveraddr, (socklen_t *)&serverlen);  
     		if(bytesReceived < 0){
                     error("recvfrom");
             }
