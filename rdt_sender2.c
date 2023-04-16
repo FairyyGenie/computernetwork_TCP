@@ -176,7 +176,7 @@ int main (int argc, char **argv)
         if(windowCreated){
             printf("%s\n", "sliding the window");
         }
-        printf("%d\n", packetBase);
+        printf("packet base: %d\n", packetBase);
     	lastByteinWindow = bytes[packetBase+window_size];
         firstByteInWindow = bytes[packetBase]+1;
         do {
