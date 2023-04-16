@@ -223,7 +223,7 @@ int main (int argc, char **argv)
         }
         continue;
     }
-    packetBase+= rectpkt.ackno/ DATA_SIZE;
+    packetBase+= recvpkt->hdr.ackno/ DATA_SIZE;
     length = fread(buffer, 1, DATA_SIZE, fp);
     if (length <= 0){
         VLOG(INFO, "End Of File has been reached");
