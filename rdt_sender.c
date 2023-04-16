@@ -181,6 +181,7 @@ int main (int argc, char **argv)
             }
 			bytes[packetBase+window_size] = bytes[packetBase+window_size-1] + length;
 			sndpkt = make_packet(length);
+            sndpkt->hdr.seqno = bytes[packetBase];
 			if(sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, ( const struct sockaddr *)&serveraddr, serverlen) < 0){
             	error("sendto");
             }
