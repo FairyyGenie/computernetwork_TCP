@@ -186,7 +186,7 @@ int main(int argc, char **argv)
                 else
                 {
                     // buffer the packet
-                    if (recvpkt->hdr.seqno != sndpkt->hdr.ackno)
+                    if ((recvpkt->hdr.seqno != sndpkt->hdr.ackno) && (recvpkt->hdr.seqno > sndpkt->hdr.ackno))
                     {
                         if (recvpkt->hdr.seqno == outoforder[howmany - 1].seqnum)
                         {
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
         else
         {
             //saving the out of order packets into buffer
-            if (recvpkt->hdr.seqno != sndpkt->hdr.ackno)
+            if ((recvpkt->hdr.seqno != sndpkt->hdr.ackno) && (recvpkt->hdr.seqno > sndpkt->hdr.ackno))
             {
                 printf("out of order packet number %d into buffer\n", recvpkt->hdr.seqno);
                 outoforder[howmany].seqnum = recvpkt->hdr.seqno;
