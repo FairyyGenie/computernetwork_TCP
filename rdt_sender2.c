@@ -29,7 +29,7 @@ struct itimerval timer;
 tcp_packet *sndpkt;
 tcp_packet *recvpkt;
 sigset_t sigmask;
-int firstByteInWindow = 0;
+int firstByteInWindow;
 int lastByteinWindow;
 int length;
 char buffer[DATA_SIZE];
@@ -65,6 +65,9 @@ void resend_packets(int sig)
         fseek(fp, SEEK_SET, firstByteInWindow);
         length = fread(buffer, 1, DATA_SIZE, fp);
         sndpkt = make_packet(length);
+        sndpkt->hdr.seqno = recvpkt->hdr.ackno;
+        printf("Timed out resend sndpkt seqno %d\n", sndpkt->hdr.seqno);
+        memcpy(sndpkt->data, buffer, length);
         VLOG(INFO, "Timeout happened");
         if (sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0,
                    (const struct sockaddr *)&serveraddr, serverlen) < 0)
@@ -192,6 +195,7 @@ int main(int argc, char **argv)
         do
         {
             timedOut = 0;
+            packetBase = newPacketBase;
             bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0,
                                      (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
             if (bytesReceived < 0)
@@ -206,13 +210,10 @@ int main(int argc, char **argv)
             //if receving duplicate ack
             if (acks[recvpkt->hdr.ackno] >= 3)
             {
-                printf("first check recvpkt ackno: %d\n", recvpkt->hdr.ackno);
-                printf("duplictate freq: %d\n", acks[recvpkt->hdr.ackno]);
                 printf("%s\n", "Received DUPLICATE ACK");
                 temp = recvpkt->hdr.ackno;
-                printf("second check recvpkt ackno: %d\n", recvpkt->hdr.ackno);
                 fseek(fp, SEEK_SET, temp);
-                printf("third check recvpkt ackno: %d\n", recvpkt->hdr.ackno);
+
                 length = fread(buffer, 1, DATA_SIZE, fp);
                 if (length <= 0)
                 {
@@ -245,6 +246,8 @@ int main(int argc, char **argv)
 
             //move window 
             newPacketBase = recvpkt->hdr.ackno / DATA_SIZE;
+            //update the variable
+            packetBase = newPacketBase;
             fseek(fp, SEEK_SET, recvpkt->hdr.ackno);
             for (int a = newPacketBase ; a < newPacketBase + window_size; a++)
             {
@@ -274,9 +277,8 @@ int main(int argc, char **argv)
                     error("sendto");
                 }
                 free(sndpkt);
+
             }
-            //update the variable
-            packetBase = newPacketBase;
 
         } while (recvpkt->hdr.ackno <= bytes[packetBase]);
         // stop_timer();

@@ -154,7 +154,7 @@ int main(int argc, char **argv)
                     //debug to see which packets are sending and receiving 
                     printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
                     printf(" send ackno %d \n", sndpkt->hdr.ackno);
-                    printf("writing into file %d ", recvpkt->hdr.seqno);
+                    printf("writing into file %d \n", recvpkt->hdr.seqno);
                     if ((&outoforder[i])->seqnum == recvpkt->hdr.seqno + recvpkt->hdr.data_size)
                     {
                         // write into file only when receving correct sequence packet
