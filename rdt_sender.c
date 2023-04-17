@@ -253,7 +253,7 @@ int main(int argc, char **argv)
                     // sending packet
                     sndpkt = make_packet(length);
                     sndpkt->hdr.seqno = bytes[a];
-                    printf("sending seq no HERE: %d\n", sndpkt->hdr.seqno);
+                    printf("sending seq no HERES: %d\n", sndpkt->hdr.seqno);
                     memcpy(sndpkt->data, buffer, length);
                     if (sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, (const struct sockaddr *)&serveraddr, serverlen) < 0)
                     {
