@@ -115,12 +115,6 @@ int main(int argc, char **argv)
         recvpkt = (tcp_packet *)buffer;
         printf("%d\n", recvpkt->hdr.seqno);
         assert(get_data_size(recvpkt) <= DATA_SIZE);
-        if (recvpkt->hdr.data_size == 0)
-        {
-            VLOG(INFO, "End Of File has been reached");
-            fclose(fp);
-            break;
-        }
         /*
          * sendto: ACK back to the client
          */
@@ -186,7 +180,7 @@ int main(int argc, char **argv)
                 else
                 {
                     // buffer the packet
-                    if ((recvpkt->hdr.seqno != sndpkt->hdr.ackno) && !(recvpkt->hdr.seqno < sndpkt->hdr.ackno))
+                    if (!(recvpkt->hdr.seqno < sndpkt->hdr.ackno))
                     {
                         if (recvpkt->hdr.seqno == outoforder[howmany - 1].seqnum)
                         {
@@ -206,14 +200,32 @@ int main(int argc, char **argv)
                             error("ERROR in sendto");
                         }
                     }
+                    else{
+                        // send the old acknowledgement info
+                         if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
+                           (struct sockaddr *)&clientaddr, clientlen) < 0)
+                            {
+                                error("ERROR in sendto");
+                            }
+                        break;
+                    }
                 }
             }
         }
         else
         {
             //saving the out of order packets into buffer
-            if ((recvpkt->hdr.seqno != sndpkt->hdr.ackno) && !(recvpkt->hdr.seqno < sndpkt->hdr.ackno))
+            if (recvpkt->hdr.seqno != sndpkt->hdr.ackno)
             {
+                if (!(recvpkt->hdr.seqno < sndpkt->hdr.ackno)){
+                     // send the old acknowledgement info
+                         if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
+                           (struct sockaddr *)&clientaddr, clientlen) < 0)
+                            {
+                                error("ERROR in sendto");
+                            }
+                    break;
+                }
                 printf("out of order packet number %d into buffer\n", recvpkt->hdr.seqno);
                 outoforder[howmany%20000].seqnum = recvpkt->hdr.seqno;
                 outoforder[howmany%20000].out = recvpkt;
@@ -248,6 +260,12 @@ int main(int argc, char **argv)
                 }
                 /*send the packet of ACK the original ACk sequence number */
             }
+        }
+        if (recvpkt->hdr.data_size == 0)
+        {
+            VLOG(INFO, "End Of File has been reached");
+            fclose(fp);
+            exit(0);
         }
     }
 

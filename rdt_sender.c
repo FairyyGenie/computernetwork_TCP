@@ -194,13 +194,11 @@ int main(int argc, char **argv)
             {
                 error("recvfrom");
             }
-            else { //if received create recvpkt
-                recvpkt = (tcp_packet *)buffer;
-                // print the ack number
-                printf("recvpkt ack no: %d\n", recvpkt->hdr.ackno);
-                //ack for the packet
-                acks[recvpkt->hdr.ackno%20000]= acks[recvpkt->hdr.ackno%20000]+1;
-            }
+            recvpkt = (tcp_packet *)buffer;
+            // print the ack number
+            printf("recvpkt ack no: %d\n", recvpkt->hdr.ackno);
+            //ack for the packet
+            acks[recvpkt->hdr.ackno%20000]= acks[recvpkt->hdr.ackno%20000]+1;
 
             // if receving duplicate ack
             if (acks[recvpkt->hdr.ackno%20000] >= 3)
@@ -255,7 +253,7 @@ int main(int argc, char **argv)
                     // sending packet
                     sndpkt = make_packet(length);
                     sndpkt->hdr.seqno = bytes[a];
-                    printf("sending seq no: %d\n", sndpkt->hdr.seqno);
+                    printf("sending seq no HERE: %d\n", sndpkt->hdr.seqno);
                     memcpy(sndpkt->data, buffer, length);
                     if (sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, (const struct sockaddr *)&serveraddr, serverlen) < 0)
                     {
