@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     /*
      * main loop: wait for a datagram, then echo it
      */
-    //VLOG(DEBUG, "epoch time, bytes received, sequence number");
+    // VLOG(DEBUG, "epoch time, bytes received, sequence number");
 
     clientlen = sizeof(clientaddr);
 
@@ -113,8 +113,18 @@ int main(int argc, char **argv)
             error("ERROR in recvfrom");
         }
         recvpkt = (tcp_packet *)buffer;
-        //printf("Got Packet: %d\n", recvpkt->hdr.seqno);
+        // printf("Got Packet: %d\n", recvpkt->hdr.seqno);
         assert(get_data_size(recvpkt) <= DATA_SIZE);
+
+        // if (recvpkt->hdr.data_size == 0 )
+        // {
+        //     if (recvpkt->hdr.seqno == oldsndpkt->hdr.ackno)
+        //     {
+        //         VLOG(INFO, "End Of File has been reached");
+        //         fclose(fp);
+        //         break;
+        //     }
+        // }
         if (recvpkt->hdr.data_size == 0)
         {
             VLOG(INFO, "End Of File has been reached");
@@ -125,117 +135,123 @@ int main(int argc, char **argv)
          * sendto: ACK back to the client
          */
         gettimeofday(&tp, NULL);
-        //VLOG(DEBUG, "%lu, %d, %d", tp.tv_sec, recvpkt->hdr.data_size, recvpkt->hdr.seqno);
+        // VLOG(DEBUG, "%lu, %d, %d", tp.tv_sec, recvpkt->hdr.data_size, recvpkt->hdr.seqno);
 
         // if there are packets in the buffer already
         if (howmany != 0)
         {
-            // loop through each packet in buffer to check for orders into the file
-            for (int i = 0; i < howmany; i++)
+            if (recvpkt->hdr.seqno == oldsndpkt->hdr.ackno)
             {
-                // break loop if buffer not proper saving packets
-                if ((&outoforder[i%20000])->out == NULL)
+                // write into file only when receving correct sequence packet
+                fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
+                fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
+                printf(" writing into file missing packet seqno %d\n ", recvpkt->hdr.seqno);
+                // change sndpkt ackno and send packet
+                sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+                sndpkt->hdr.data_size = recvpkt->hdr.data_size;
+                sndpkt->hdr.ctr_flags = ACK;
+                oldsndpkt->hdr.ackno = sndpkt->hdr.ackno;
+                oldsndpkt->hdr.ctr_flags = sndpkt->hdr.ctr_flags;
+                oldsndpkt->hdr.data_size = sndpkt->hdr.data_size;
+                // debug to see which packets are sending and receiving
+                printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
+                printf(" send ackno %d \n", sndpkt->hdr.ackno);
+
+                // loop through each packet in buffer to check for orders into the file
+                for (int i = 0; i < howmany; i++)
                 {
-                    printf("the packet didn't get safe into the buffer\n");
-                    break;
-                }
-                // write into the file based on sequencing
-                if (recvpkt->hdr.seqno == oldsndpkt->hdr.ackno)
-                {
-                    // write into file only when receving correct sequence packet
-                    fseek(fp, recvpkt->hdr.seqno, SEEK_SET);
-                    fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
-                    printf(" %s \n", "missing packet received correct sequence no buffer");
-                    // change sndpkt ackno and send packet
-                    sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
-                    sndpkt->hdr.ctr_flags = ACK;
-                    oldsndpkt->hdr.ackno = sndpkt->hdr.ackno;
-                    oldsndpkt->hdr.ctr_flags = sndpkt->hdr.ctr_flags;
-                    //debug to see which packets are sending and receiving 
-                    printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
-                    printf(" send ackno %d \n", sndpkt->hdr.ackno);
-                    printf(" writing into file %d\n ", recvpkt->hdr.seqno);
-                    if ((&outoforder[i%20000])->seqnum == recvpkt->hdr.seqno + recvpkt->hdr.data_size)
+                    // break loop if buffer not proper saving packets
+                    if ((&outoforder[i%20000])->out == NULL)
+                    {
+                        break;
+                    }
+                    if ((&outoforder[i%20000])->seqnum == oldsndpkt->hdr.seqno)
                     {
                         // write into file only when receving correct sequence packet
-                        printf("out of order packet number %d into file HERES\n", recvpkt->hdr.seqno);
+                        printf("out of order packet number %d already in buffer writing into file\n", (&outoforder[i%20000])->seqnum);
                         fseek(fp, (&outoforder[i%20000])->seqnum, SEEK_SET);
                         fwrite((&outoforder[i%20000])->out->data, 1, (&outoforder[i%20000])->out->hdr.data_size, fp);
-                        //cumulative ack
+                        // cumulative ack
                         sndpkt->hdr.ackno = (&outoforder[i%20000])->out->hdr.seqno + (&outoforder[i%20000])->out->hdr.data_size;
                         sndpkt->hdr.ctr_flags = ACK;
+                        sndpkt->hdr.data_size = recvpkt->hdr.data_size;
                         oldsndpkt->hdr.ackno = sndpkt->hdr.ackno;
                         oldsndpkt->hdr.ctr_flags = sndpkt->hdr.ctr_flags;
-                        printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
-                        printf(" send ackno %d \n", sndpkt->hdr.ackno);
-
-                        if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
-                                   (struct sockaddr *)&clientaddr, clientlen) < 0)
-                        {
-                            error("ERROR in sendto");
-                        }
+                        oldsndpkt->hdr.data_size = sndpkt->hdr.data_size;
+                        printf(" sndpkt ackno updated to %d \n", sndpkt->hdr.ackno);
                         /*send the packet of ACK the original ACk sequence number */
                     }
-                    if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
-                               (struct sockaddr *)&clientaddr, clientlen) < 0)
-                    {
-                        error("ERROR in sendto");
-                    }
-                    /*send the packet of ACK the original ACk sequence number */
                 }
-                else
-                {
-                    // buffer the packet
-                    if (!(recvpkt->hdr.seqno < sndpkt->hdr.ackno))
-                    {
-                        if (recvpkt->hdr.seqno == outoforder[howmany - 1].seqnum)
-                        {
-                            break;
-                        }
-                        printf("out of order packet number %d into buffer (packet buffering)\n", recvpkt->hdr.seqno);
-
-                        outoforder[howmany%20000].seqnum = recvpkt->hdr.seqno;
-                        outoforder[howmany%20000].out = recvpkt;
-                        howmany = howmany + 1;
-                        printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
-                        printf(" send ackno %d \n", oldsndpkt->hdr.ackno);
-                        // send the old acknowledgement info
-                        if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
-                                   (struct sockaddr *)&clientaddr, clientlen) < 0)
-                        {
-                            error("ERROR in sendto");
-                        }
-                    }
-                    else{
-                        // send the old acknowledgement info
-                         if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
-                           (struct sockaddr *)&clientaddr, clientlen) < 0)
-                            {
-                                error("ERROR in sendto");
-                            }
-                        continue;
-                    }
-                }
-            }
-        }
-        else
-        {
-            //saving the out of order packets into buffer
-            if ((recvpkt->hdr.seqno != sndpkt->hdr.ackno) && !(recvpkt->hdr.seqno < sndpkt->hdr.ackno))
-            {
-                printf("out of order packet number %d into buffer\n", recvpkt->hdr.seqno);
-                outoforder[howmany%20000].seqnum = recvpkt->hdr.seqno;
-                outoforder[howmany%20000].out = recvpkt;
-                howmany++;
-                printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
-                printf(" send ackno %d \n", oldsndpkt->hdr.ackno);
-
-                // send the old acknowledgement info
-                if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
+                // when out of the checking buffer loop send sndpkt
+                if (sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
                            (struct sockaddr *)&clientaddr, clientlen) < 0)
                 {
                     error("ERROR in sendto");
                 }
+                /*send the packet of ACK the original ACk sequence number */
+            }
+            else
+            {
+                // receiving out of order packet buffer the packet
+                // if (!(recvpkt->hdr.seqno < oldsndpkt->hdr.ackno+oldsndpkt->hdr.data_size)) // if the packet seqno smaller then the ackno ignore
+                // {
+                    printf("waiting for packet %d\n", oldsndpkt->hdr.ackno);
+                    printf("out of order packet number %d into buffer\n", recvpkt->hdr.seqno);
+                    // buffering
+                    outoforder[howmany%20000].seqnum = recvpkt->hdr.seqno;
+                    outoforder[howmany%20000].out = recvpkt;
+                    howmany = howmany + 1;
+                    printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
+                    printf(" send ackno %d \n", oldsndpkt->hdr.ackno);
+                    // send the old acknowledgement info
+                    if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
+                               (struct sockaddr *)&clientaddr, clientlen) < 0)
+                    {
+                        error("ERROR in sendto");
+                    }
+                // }
+                // else
+                // {
+                //     printf("waiting for missing packet %d \n", oldsndpkt->hdr.ackno);
+                //     //  packet seqno smaller then the ackno send the old acknowledgement info
+                //     if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
+                //                (struct sockaddr *)&clientaddr, clientlen) < 0)
+                //     {
+                //         error("ERROR in sendto");
+                //     }
+                // }
+            }
+        }
+        else // nothing in buffer
+        {
+            // saving the out of order packets into buffer
+             if (recvpkt->hdr.seqno != oldsndpkt->hdr.ackno)
+            {
+
+                    printf("waiting for packet %d\n", oldsndpkt->hdr.ackno);
+                    printf("out of order packet number %d into buffer\n", recvpkt->hdr.seqno);
+                    outoforder[howmany%20000].seqnum = recvpkt->hdr.seqno;
+                    outoforder[howmany%20000].out = recvpkt;
+                    howmany = howmany + 1;
+                    printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
+                    printf(" send ackno %d \n", oldsndpkt->hdr.ackno);
+
+                    // send the old acknowledgement info
+                    if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
+                               (struct sockaddr *)&clientaddr, clientlen) < 0)
+                    {
+                        error("ERROR in sendto");
+                    }
+                // }
+                // else{
+                //     //  packet seqno smaller then the ackno send the old acknowledgement info
+                //     printf("waiting for missing packet %d \n", oldsndpkt->hdr.ackno);
+                //     if (sendto(sockfd, oldsndpkt, TCP_HDR_SIZE, 0,
+                //                (struct sockaddr *)&clientaddr, clientlen) < 0)
+                //     {
+                //         error("ERROR in sendto");
+                //     }
+                // }
             }
             else
             {
@@ -244,9 +260,11 @@ int main(int argc, char **argv)
                 fwrite(recvpkt->data, 1, recvpkt->hdr.data_size, fp);
 
                 sndpkt->hdr.ackno = recvpkt->hdr.seqno + recvpkt->hdr.data_size;
+                sndpkt->hdr.data_size = recvpkt->hdr.data_size;
                 sndpkt->hdr.ctr_flags = ACK;
                 oldsndpkt->hdr.ackno = sndpkt->hdr.ackno;
                 oldsndpkt->hdr.ctr_flags = sndpkt->hdr.ctr_flags;
+                oldsndpkt->hdr.data_size = sndpkt->hdr.data_size;
                 printf(" recv hdr seqno %d \n", recvpkt->hdr.seqno);
                 printf(" send ackno %d \n", sndpkt->hdr.ackno);
 

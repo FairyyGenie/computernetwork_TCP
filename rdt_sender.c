@@ -54,10 +54,6 @@ void resend_packets(int sig)
 {
     if (sig == SIGALRM)
     {
-        if (eof == 1)
-        {
-            exit(0);
-        }
         // Resend all packets range between
         // sendBase and nextSeqNum
         fseek(fp, SEEK_SET, firstByteInWindow);
@@ -157,20 +153,24 @@ int main(int argc, char **argv)
             {
                 if (i == 0)
                 {
-                    packetBase=0;
+                    packetBase = 0;
+                    bytes[i]=0;
                     start_timer();
                 }
                 length = fread(buffer, 1, DATA_SIZE, fp);
+                bytes[i + 1] = bytes[i] + length;
                 if (length <= 0)
                 {
-                    VLOG(INFO, "End Of File has been reached");
-                    sndpkt = make_packet(0);
-                    sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
-                           (const struct sockaddr *)&serveraddr, serverlen);
-                    eof = 1;
-                    break;
+                    if (recvpkt->hdr.ackno == bytes[i])
+                    {
+                        VLOG(INFO, "End Of File has been reached");
+                        sndpkt = make_packet(0);
+                        sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
+                               (const struct sockaddr *)&serveraddr, serverlen);
+                        eof = 1;
+                        break;
+                    }
                 }
-                bytes[i + 1] = bytes[i] + length;
                 sndpkt = make_packet(length);
                 sndpkt->hdr.seqno = bytes[i];
                 memcpy(sndpkt->data, buffer, length);
@@ -188,8 +188,8 @@ int main(int argc, char **argv)
         do
         {
             bytesReceived = recvfrom(sockfd, buffer, MSS_SIZE, 0,
-                      (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
-            //if not received
+                                     (struct sockaddr *)&serveraddr, (socklen_t *)&serverlen);
+            // if not received
             if (bytesReceived < 0)
             {
                 error("recvfrom");
@@ -197,26 +197,17 @@ int main(int argc, char **argv)
             recvpkt = (tcp_packet *)buffer;
             // print the ack number
             printf("recvpkt ack no: %d\n", recvpkt->hdr.ackno);
-            //ack for the packet
-            acks[recvpkt->hdr.ackno%20000]= acks[recvpkt->hdr.ackno%20000]+1;
+            // ack for the packet
+            acks[recvpkt->hdr.ackno % 20000] = acks[recvpkt->hdr.ackno % 20000] + 1;
 
             // if receving duplicate ack
-            if (acks[recvpkt->hdr.ackno%20000] >= 3)
+            if (acks[recvpkt->hdr.ackno % 20000] >= 3)
             {
 
                 printf("Received DUPLICATE ACK: %d\n", recvpkt->hdr.ackno);
                 temp = recvpkt->hdr.ackno;
                 fseek(fp, SEEK_SET, temp);
                 length = fread(buffer, 1, DATA_SIZE, fp);
-                if (length <= 0)
-                {
-                    VLOG(INFO, "End Of File has been reached");
-                    sndpkt = make_packet(0);
-                    sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
-                           (const struct sockaddr *)&serveraddr, serverlen);
-                    eof = 1;
-                    break;
-                }
                 sndpkt = make_packet(length);
                 sndpkt->hdr.seqno = temp;
                 memcpy(sndpkt->data, buffer, length);
@@ -225,8 +216,8 @@ int main(int argc, char **argv)
                 {
                     error("sendto");
                 }
-                acks[recvpkt->hdr.ackno%20000] = 0;
-                packetBase=newPacketBase;
+                acks[recvpkt->hdr.ackno % 20000] = 0;
+                packetBase = newPacketBase;
             }
             else
             { // moving window if correctly acknoledged
@@ -239,17 +230,19 @@ int main(int argc, char **argv)
                         stop_timer();
                     }
                     length = fread(buffer, 1, DATA_SIZE, fp);
+                    bytes[a+1] = bytes[a] + length;
                     if (length <= 0)
                     {
-                        VLOG(INFO, "End Of File has been reached");
-                        sndpkt = make_packet(0);
-                        sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
-                               (const struct sockaddr *)&serveraddr, serverlen);
-                        eof = 1;
-                        break;
+                        if (recvpkt->hdr.ackno == bytes[a])
+                        {
+                            VLOG(INFO, "End Of File has been reached");
+                            sndpkt = make_packet(0);
+                            sendto(sockfd, sndpkt, TCP_HDR_SIZE, 0,
+                                   (const struct sockaddr *)&serveraddr, serverlen);
+                            eof = 1;
+                            break;
+                        }
                     }
-                    bytes[a] = 0;
-                    bytes[a] = bytes[a - 1] + length;
                     // sending packet
                     sndpkt = make_packet(length);
                     sndpkt->hdr.seqno = bytes[a];
@@ -263,14 +256,14 @@ int main(int argc, char **argv)
                 }
                 // update the variable
                 packetBase = newPacketBase;
-                 // moving window using array
+                // moving window using array
                 printf("packet base: %d\n", packetBase);
                 lastByteinWindow = bytes[packetBase + window_size];
                 firstByteInWindow = bytes[packetBase];
             }
 
         } while (recvpkt->hdr.ackno <= bytes[packetBase]);
-        // stop_timer();
+        stop_timer();
     }
     return 0;
 }
