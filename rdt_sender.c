@@ -176,7 +176,6 @@ int main(int argc, char **argv)
                 sndpkt = make_packet(length);
                 sndpkt->hdr.seqno = bytes[i];
                 memcpy(sndpkt->data, buffer, length);
-                printf("%s", sndpkt->data);
                 if (sendto(sockfd, sndpkt, TCP_HDR_SIZE + get_data_size(sndpkt), 0, (const struct sockaddr *)&serveraddr, serverlen) < 0)
                 {
                     error("sendto");
