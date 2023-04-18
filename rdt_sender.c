@@ -212,7 +212,6 @@ int main(int argc, char **argv)
             if (recvpkt->hdr.ackno < firstByteInWindow)
             {
                 printf("ignore!!!\n");
-                break;
             }
             // receive cumulaative ack for the first byte in window
             stop_timer();
@@ -234,7 +233,6 @@ int main(int argc, char **argv)
                     error("sendto");
                 }
                 acks[recvpkt->hdr.ackno % 20000] = 0;
-                break;
             }
 
             // moving window if correctly acknoledged
